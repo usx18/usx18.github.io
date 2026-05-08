@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emoji & ASCII Clipboard</title>
+
+<style>
+
+body {
+    margin: 0;
+    padding: 20px;
+    background: #111;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+h1 {
+    text-align: center;
+}
+
+#search {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    border: none;
+    background: #1e1e1e;
+    color: white;
+    box-sizing: border-box;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 15px;
+}
+
+.emoji-item {
+    background: #1e1e1e;
+    border-radius: 12px;
+    padding: 15px;
+    cursor: pointer;
+    transition: 0.2s;
+
+    overflow-x: auto;
+}
+
+.emoji-item:hover {
+    background: #2d2d2d;
+}
+
+.emoji {
+    font-size: 2rem;
+    text-align: center;
+
+    font-family:
+        "Segoe UI Emoji",
+        "Apple Color Emoji",
+        sans-serif;
+}
+
+.ascii {
+    white-space: break-spaces;
+
+    font-family:
+        "Cascadia Code",
+        "JetBrains Mono",
+        "Consolas",
+        monospace;
+}
+
+.copied {
+    background: #14532d !important;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Emoji & ASCII Clipboard</h1>
+
+<input id="search" placeholder="Search...">
+
+<div class="emoji-grid" id="container"></div>
+
+<script>
+
+let entries = [];
+
+// LOAD FROM FILE
+fetch("ascii.txt")
+    .then(res => res.text())
+    .then(text => {
+
+        entries = text
+            .split("===")
+            .map(x => x.replace(/^\n+|\n+$/g, ''))
+            .filter(x => x.trim().length > 0);
+
+        render();
+
+    });
+
+function isAscii(text) {
+    return text.includes("\n") || text.length > 10;
+}
+
+function render(filter = "") {
+
+    const container = document.getElementById("container");
+    container.innerHTML = "";
+
+    entries
+        .filter(x => x.toLowerCase().includes(filter.toLowerCase()))
+        .forEach(item => {
+
+            const div = document.createElement("div");
+            div.className = "emoji-item";
+
+            div.classList.add(isAscii(item) ? "ascii" : "emoji");
+
+            div.textContent = item;
+
+            div.onclick = async () => {
+                await navigator.clipboard.writeText(item);
+                div.classList.add("copied");
+                setTimeout(() => div.classList.remove("copied"), 400);
+            };
+
+            container.appendChild(div);
+
+        });
+
+}
+
+document.getElementById("search")
+.addEventListener("input", e => render(e.target.value));
+
+</script>
+
+</body>
+</html>
