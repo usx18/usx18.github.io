@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Emoji & ASCII Clipboard</title>
+<title>ASCII Library</title>
 
 <style>
 
@@ -19,55 +19,53 @@ h1 {
     text-align: center;
 }
 
-#search {
-    width: 100%;
-    padding: 14px;
+/* CATEGORY BAR */
+
+#bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-bottom: 15px;
-    border-radius: 10px;
-    border: none;
-    background: #1e1e1e;
-    color: white;
-    box-sizing: border-box;
 }
 
-.emoji-grid {
+button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    background: #222;
+    color: white;
+    cursor: pointer;
+}
+
+button.active {
+    background: #3b82f6;
+}
+
+/* GRID */
+
+.grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
     gap: 15px;
 }
 
-.emoji-item {
+/* ITEM */
+
+.item {
     background: #1e1e1e;
-    border-radius: 12px;
     padding: 15px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: 0.2s;
+
+    white-space: break-spaces;
+    font-family: monospace;
+    line-height: 1.1;
 
     overflow-x: auto;
 }
 
-.emoji-item:hover {
+.item:hover {
     background: #2d2d2d;
-}
-
-.emoji {
-    font-size: 2rem;
-    text-align: center;
-
-    font-family:
-        "Segoe UI Emoji",
-        "Apple Color Emoji",
-        sans-serif;
-}
-
-.ascii {
-    white-space: break-spaces;
-
-    font-family:
-        "Cascadia Code",
-        "JetBrains Mono",
-        "Consolas",
-        monospace;
 }
 
 .copied {
@@ -79,64 +77,138 @@ h1 {
 
 <body>
 
-<h1>Emoji & ASCII Clipboard</h1>
+<h1>ASCII Library</h1>
 
-<input id="search" placeholder="Search...">
+<div id="bar"></div>
 
-<div class="emoji-grid" id="container"></div>
+<div class="grid" id="grid"></div>
 
 <script>
 
-let entries = [];
+let data = [];
+let categories = [];
+let active = "ALL";
 
-// LOAD FROM FILE
+// LOAD FILE
+
 fetch("ascii.txt")
-    .then(res => res.text())
-    .then(text => {
+.then(r => r.text())
+.then(text => {
 
-        entries = text
-            .split("===")
-            .map(x => x.replace(/^\n+|\n+$/g, ''))
-            .filter(x => x.trim().length > 0);
+    parse(text);
+    buildButtons();
+    render();
 
-        render();
+});
+
+// PARSE === SYSTEM
+
+function parse(text) {
+
+    const entries = text
+        .split("===")
+        .map(e => e.trim())
+        .filter(e => e.length > 0);
+
+    data = [];
+    categories = [];
+
+    entries.forEach(entry => {
+
+        const lines = entry.split("\n");
+
+        const first = lines[0];
+
+        let cat = "UNCATEGORIZED";
+        let content = entry;
+
+        if (first.includes("|")) {
+            const split = first.split("|");
+            cat = split[0].trim();
+            lines[0] = split.slice(1).join("|"); // keep ASCII intact
+            content = lines.join("\n");
+        }
+
+        if (!categories.includes(cat)) {
+            categories.push(cat);
+        }
+
+        data.push({
+            cat,
+            value: content
+        });
 
     });
 
-function isAscii(text) {
-    return text.includes("\n") || text.length > 10;
 }
 
-function render(filter = "") {
+// BUILD BUTTONS
 
-    const container = document.getElementById("container");
-    container.innerHTML = "";
+function buildButtons() {
 
-    entries
-        .filter(x => x.toLowerCase().includes(filter.toLowerCase()))
-        .forEach(item => {
+    const bar = document.getElementById("bar");
+
+    const all = ["ALL", ...categories];
+
+    all.forEach(cat => {
+
+        const btn = document.createElement("button");
+        btn.textContent = cat;
+
+        if (cat === "ALL") btn.classList.add("active");
+
+        btn.onclick = () => {
+
+            active = cat;
+
+            document.querySelectorAll("button")
+                .forEach(b => b.classList.remove("active"));
+
+            btn.classList.add("active");
+
+            render();
+
+        };
+
+        bar.appendChild(btn);
+
+    });
+
+}
+
+// RENDER
+
+function render() {
+
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+
+    data
+        .filter(x => active === "ALL" || x.cat === active)
+        .forEach(x => {
 
             const div = document.createElement("div");
-            div.className = "emoji-item";
+            div.className = "item";
 
-            div.classList.add(isAscii(item) ? "ascii" : "emoji");
-
-            div.textContent = item;
+            div.textContent = x.value;
 
             div.onclick = async () => {
-                await navigator.clipboard.writeText(item);
+
+                await navigator.clipboard.writeText(x.value);
+
                 div.classList.add("copied");
-                setTimeout(() => div.classList.remove("copied"), 400);
+
+                setTimeout(() => {
+                    div.classList.remove("copied");
+                }, 400);
+
             };
 
-            container.appendChild(div);
+            grid.appendChild(div);
 
         });
 
 }
-
-document.getElementById("search")
-.addEventListener("input", e => render(e.target.value));
 
 </script>
 
