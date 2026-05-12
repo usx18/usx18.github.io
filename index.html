@@ -28,6 +28,8 @@ h1 {
     margin-bottom: 15px;
 }
 
+/* BUTTONS */
+
 button {
     padding: 8px 12px;
     border: none;
@@ -35,6 +37,10 @@ button {
     background: #222;
     color: white;
     cursor: pointer;
+}
+
+button:hover {
+    background: #333;
 }
 
 button.active {
@@ -81,6 +87,12 @@ button.active {
 
 <div id="bar"></div>
 
+<button onclick="exportSorted()">
+    Export Sorted
+</button>
+
+<br><br>
+
 <div class="grid" id="grid"></div>
 
 <script>
@@ -123,10 +135,15 @@ function parse(text) {
         let content = entry;
 
         if (first.includes("|")) {
+
             const split = first.split("|");
+
             cat = split[0].trim();
-            lines[0] = split.slice(1).join("|"); // keep ASCII intact
+
+            lines[0] = split.slice(1).join("|");
+
             content = lines.join("\n");
+
         }
 
         if (!categories.includes(cat)) {
@@ -148,20 +165,23 @@ function buildButtons() {
 
     const bar = document.getElementById("bar");
 
-    const all = ["ALL", ...categories];
+    const all = ["ALL", ...categories.sort()];
 
     all.forEach(cat => {
 
         const btn = document.createElement("button");
+
         btn.textContent = cat;
 
-        if (cat === "ALL") btn.classList.add("active");
+        if (cat === "ALL") {
+            btn.classList.add("active");
+        }
 
         btn.onclick = () => {
 
             active = cat;
 
-            document.querySelectorAll("button")
+            document.querySelectorAll("#bar button")
                 .forEach(b => b.classList.remove("active"));
 
             btn.classList.add("active");
@@ -181,13 +201,19 @@ function buildButtons() {
 function render() {
 
     const grid = document.getElementById("grid");
+
     grid.innerHTML = "";
 
-    data
+    const sorted = [...data].sort((a, b) => {
+        return a.cat.localeCompare(b.cat);
+    });
+
+    sorted
         .filter(x => active === "ALL" || x.cat === active)
         .forEach(x => {
 
             const div = document.createElement("div");
+
             div.className = "item";
 
             div.textContent = x.value;
@@ -207,6 +233,36 @@ function render() {
             grid.appendChild(div);
 
         });
+
+}
+
+// EXPORT SORTED TXT
+
+function exportSorted() {
+
+    const sorted = [...data].sort((a, b) => {
+        return a.cat.localeCompare(b.cat);
+    });
+
+    let output = "";
+
+    sorted.forEach(x => {
+
+        output += `${x.cat}|${x.value}\n===\n\n`;
+
+    });
+
+    const blob = new Blob([output], {
+        type: "text/plain"
+    });
+
+    const a = document.createElement("a");
+
+    a.href = URL.createObjectURL(blob);
+
+    a.download = "ascii_sorted.txt";
+
+    a.click();
 
 }
 
